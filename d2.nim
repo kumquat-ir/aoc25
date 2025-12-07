@@ -23,4 +23,4 @@ for rin in readFile("d2.input").split(','):
     if i.isRep():
       total += i
 
-echo total
+echo "sum of invalid ids: ", total

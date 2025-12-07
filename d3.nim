@@ -19,4 +19,4 @@ for line in "d3.input".lines:
     linetotal += largest[1]
   total += linetotal
 
-echo total
+echo "total joltage: ", total

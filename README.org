@@ -1,0 +1,5 @@
+#+title: advent of code 2025
+
+I've ended up only keeping the solutions for part 2 of everything this year (first year doing it)
+
+Paste the input for day ~<n>~ into ~d<n>.input~, and run with ~nim r d<n>.nim~

@@ -40,4 +40,4 @@ while work:
         layout[i][j] = '.'
         work = true
 
-echo total
+echo "removable rolls: ", total

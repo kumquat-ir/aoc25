@@ -1,4 +1,4 @@
-import std/[streams, strutils]
+import std/[strutils]
 
 var
   pos = 50
@@ -27,12 +27,9 @@ proc rot(dir: char, amti: int) =
     if pos == 0:
       inc count
 
-let input = openFileStream("d1.input", fmRead)
-
-for line in input.lines():
+for line in "d1.input".lines:
   let dir = line[0]
   let amt = parseInt(line[1..^1])
   rot(dir, amt)
 
-echo count
-close input
+echo "number of zeros: ", count

@@ -25,4 +25,4 @@ for problem in problems:
     of '*': total += problem[1].foldl(a * b)
     else: raise newException(ValueError, "invalid op $1" % $problem[0])
 
-echo total
+echo "sum of answers: ", total

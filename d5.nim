@@ -30,4 +30,4 @@ while i < fresh.len - 1:
 for r in fresh:
   total += r[1] - r[0] + 1
 
-echo total
+echo "number of fresh ids: ", total

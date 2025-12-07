@@ -29,5 +29,5 @@ for line in lines[1..^1]:
   beams = nbeams
   mults = nmults
 
-echo splits
-echo mults.foldl(a + b)
+echo "number of splits: ", splits
+echo "number of timelines: ", mults.foldl(a + b)
