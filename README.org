@@ -3,3 +3,33 @@
 I've ended up only keeping the solutions for part 2 of everything this year (first year doing it)
 
 Paste the input for day ~<n>~ into ~d<n>.input~, and run with ~nim r d<n>.nim~
+
+Day-specific notes:
+* Day 10
+This day uses z3 to solve the problem. It can be installed with ~nimble install 'z3@#HEAD'~ (it needs a currently untagged fix for nim 2.x).
+
+But it also doesn't work out of the box. You'll need to apply some patches to get it to not segfault:
+#+begin_src patch
+--- a/z3/z3_api.nim
++++ b/z3/z3_api.nim
+@@ -467,7 +467,7 @@
+ proc Z3_optimize_minimize*(c: Z3_context,o: Z3_optimize,t: Z3_ast): cuint {.importc: "Z3_optimize_minimize", dynlib: libz3.}
+ proc Z3_optimize_push*(c: Z3_context,d: Z3_optimize) {.importc: "Z3_optimize_push", dynlib: libz3.}
+ proc Z3_optimize_pop*(c: Z3_context,d: Z3_optimize) {.importc: "Z3_optimize_pop", dynlib: libz3.}
+-proc Z3_optimize_check*(c: Z3_context,o: Z3_optimize): Z3_lbool {.importc: "Z3_optimize_check", dynlib: libz3.}
++proc Z3_optimize_check*(c: Z3_context,o: Z3_optimize,n: uint32, a: pointer): Z3_lbool {.importc: "Z3_optimize_check", dynlib: libz3.}
+ proc Z3_optimize_get_reason_unknown*(c: Z3_context,d: Z3_optimize): Z3_string {.importc: "Z3_optimize_get_reason_unknown", dynlib: libz3.}
+ proc Z3_optimize_get_model*(c: Z3_context,o: Z3_optimize): Z3_model {.importc: "Z3_optimize_get_model", dynlib: libz3.}
+ proc Z3_optimize_set_params*(c: Z3_context,o: Z3_optimize,p: Z3_params) {.importc: "Z3_optimize_set_params", dynlib: libz3.}
+--- a/z3.nim
++++ b/z3.nim
+@@ -219,7 +219,7 @@
+
+ template check*(s: Z3_optimize): Z3_lbool =
+   ## Check whether the assertions in a given optimize are consistent or not.
+-  Z3_optimize_check(ctx, s)
++  Z3_optimize_check(ctx, s, 0, nil)
+
+ template get_model*(s: Z3_optimize): Z3_model =
+   ## Retrieve the model for the last optimize.check
+#+end_src
