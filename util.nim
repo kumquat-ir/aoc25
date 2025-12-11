@@ -92,34 +92,29 @@ proc solve*(self: var LinEqs): LinSol =
     if frowi == -1:
       continue
     let frow = self.rows[frowi]
-    # echo frow
     for r in frowi + 1 ..< self.rows.len:
       if self.rows[r].leading == i:
-        # echo self.rows[r], " / ", -self.rows[r].cols[i] / frow.cols[i]
         self.add(frowi, -self.rows[r].cols[i] / frow.cols[i], r)
-  # echo "ref: ", self.refp()
-  # echo "refed:\n", self
+
+  if not self.refp():
+    self.sort_leading()
+    assert self.refp(), "matrix was not REF after first row eliminations!"
 
   for i in 0 ..< self.rows.len:
     if self.rows[i].leading != self.ncols:
       self.mult(i, 1 / self.rows[i].cols[self.rows[i].leading])
-
-  # echo "reduced:\n", self
 
   for i in countdown(self.ncols - 1, 0):
     let frowi = self.rows.findIt(it.leading == i)
     if frowi == -1:
       continue
     let frow = self.rows[frowi]
-    # echo frow
     for r in countdown(frowi - 1, 0):
       let rn = self.rows[r].cols[i]
       if rn != 0 // 1:
-        # echo self.rows[r], " / ", -self.rows[r].cols[i] / frow.cols[i]
         self.add(frowi, -self.rows[r].cols[i] / frow.cols[i], r)
 
-  # echo "rref: ", self.rrefp()
-  echo "rrefed:\n", self
+  assert self.rrefp(), "matrix was not RREF after second row eliminations!"
 
   result.consistent = true
   for row in self.rows:
@@ -129,7 +124,6 @@ proc solve*(self: var LinEqs): LinSol =
 
   let leadings: set[uint8] = self.rows.mapIt(uint8 it.leading).toSet
   result.basic = newSeqWith(self.ncols, 0 // 1)
-  # result.free = newSeq[seq[Rational[int]]](self.ncols - leadings.len)
   for i in 0 ..< self.ncols:
     if (uint8 i) in leadings:
       let r = self.rows.findIt(it.leading == i)
@@ -169,24 +163,12 @@ func flip*(self: Dir): Dir =
 
 
 when isMainModule:
-  var a = linEqs(@[@[1, 4, 5], @[2, 0, 4], @[1, 0, 2]], @[4, 12, 4])
-  echo a, "\n"
-  a.mult(1, 1 // 2)
-  echo a, "\n"
-  a.swap(1, 2)
-  echo a, "\n"
-  a.add(0, -5, 1)
-  a.add(0, -2, 2)
-  echo a, " ", a.refp, "\n"
-  a.add(1, -2 // 3, 2)
-  echo a, " ", a.refp, "\n"
-
-  var b = linEqs(@[@[1, 0, 0], @[0, 0, 1], @[1, 0, 0]], @[0, 0, 0])
-  echo b, "\t", b.refp, "\t", b.rrefp, "\n"
-  b.sort_leading()
-  echo b, "\t", b.refp, "\t", b.rrefp, "\n"
-
-  a = linEqs(@[@[1, 4, 5], @[2, 0, 4], @[1, 0, 2]], @[4, 12, 17])
+  var a = linEqs(@[
+    @[1, 0, 0, 1, 1],
+    @[0, 1, 1, 1, 0],
+    @[1, 1, 0, 1, 1],
+    @[1, 1, 1, 0, 0],
+  ], @[26, 40, 35, 31, 11])
+  echo a
   echo a.solve()
   echo a
-  echo b.solve
