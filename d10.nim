@@ -1,7 +1,5 @@
-import std/[strutils, sequtils, setutils, math, bitops, strscans]
-import z3
-import z3/z3_api
-
+import std/[strutils, sequtils, setutils, math, bitops]
+import ./util
 type
   LightRange = range[0..9]
   Machine = object
@@ -37,7 +35,6 @@ proc part1(): int =
           break
     result += best
 
-{.push warning[CStringConv]:off .}
 proc part2(): int =
   for machine in machines:
     var bseqs = newSeqWith(machine.buttons.len, newSeq[int](machine.joltage.len))
@@ -45,40 +42,91 @@ proc part2(): int =
       for j in 0 ..< bseqs[i].len:
         if j in machine.buttons[i]:
           bseqs[i][j] = 1
-    var r: string
-    z3: # jank but it works
-      let s = Optimizer()
-      var
-        ns: seq[Z3_ast_int]
-        js: seq[Z3_ast_int]
-      for i in 0 ..< machine.joltage.len:
-        js.add Int("j" & $i)
-        s.assert js[i] == machine.joltage[i]
-      var sum: Z3_ast_int
-      for i in 0 ..< bseqs.len:
-        ns.add Int("n" & $i)
-        s.assert ns[i] >= 0
-        if i == 0:
-          sum = ns[i]
-        else:
-          sum = sum + ns[i]
-      for i in 0 ..< bseqs[0].len:
-        var row: seq[Z3_ast_int]
-        for j in 0 ..< bseqs.len:
-          if bseqs[j][i] == 1:
-            row.add ns[j]
-        var rsum: Z3_ast_int = row[0]
-        for j in 1 ..< row.len:
-          rsum = rsum + row[j]
-        s.assert rsum == js[i]
-      discard Z3_optimize_minimize(ctx, s, sum.Z3_ast)
-      assert s.check() == Z3_L_TRUE
-      r = $s.get_model()
 
-    for line in r.splitLines:
-      var b, n: int
-      if line.scanf("n$i -> $i", b, n):
-        result += n
+    # gaussian elimination equation solver
+    # might leave us with some free variables to deal with, but thats still reducing the problem size
+    let sol = solve(bseqs, machine.joltage)
+
+    var
+      basic = sol.basic
+      free = sol.free
+      nfree: seq[seq[Rational[int]]]
+    # there can be fractions here - need to get rid of those if there are any
+    if basic.anyIt(it.den > 1):
+      # fractions in the base case - eliminate by adding free variables
+      let
+        dens = basic.mapIt(it.den)
+        elimi = sol.free.findIt(it.mapIt(it.den) == dens)
+        # assumes that if no one free var is suitable for eliminating the denominators, we can use all of them
+        # and that all denominators are the same
+        # and that simply adding the free var is enough to eliminate them
+        # works on my input(tm)
+        elims = if elimi == -1: (0 ..< sol.free.len).toSeq else: @[elimi]
+      for i in elims:
+        basic = zip(basic, sol.free[i]).mapIt(it[0] + it[1])
+
+    for i in 0 ..< free.len:
+      if free[i].anyIt(it.den > 1):
+        let
+          other = free[(i+1)..^1].findIt(it.mapIt(it.den) == free[i].mapIt(it.den)) + i + 1
+          den = free[i].mapIt(it.den).max
+        if other > i and den == 2:
+          # there may be a solution that requires they still be fractional - add a couple extra variables to check
+          nfree.add zip(free[i], free[other]).mapIt(it[0] + it[1])
+          nfree.add zip(free[i], free[other]).mapIt(it[0] - it[1])
+        # fractions in a free variable - just multiply it
+        free[i].applyIt(it * den)
+
+    # we have now eliminated all the denominators - convert everything to ints
+    var
+      base = basic.mapIt(it.num)
+      modifiers = free.mapIt(it.mapIt(it.num))
+      nmods = nfree.mapIt(it.mapIt(it.num))
+
+    var
+      best = int.high
+      bbase = base
+    # brute force time!
+    # in my input, there are at most 3 free variables, so this doesnt take too long
+    for at in (if modifiers.len == 0: 0 else: 256^(modifiers.len - 1)) ..< 256^(modifiers.len):
+      var
+        attempt: seq[int]
+        a = uint at
+        abase = base
+
+      while a > 0:
+        attempt.add int(a and 0xFF) - 64 # offset to make it work on my input, ymmv
+        a = a shr 8
+
+      for i in 0 ..< attempt.len:
+        abase = zip(abase, modifiers[i]).mapIt(it[0] + it[1] * attempt[i])
+
+      let sum = abase.foldl(a + b)
+      if sum < best and abase.allIt(it >= 0):
+        best = sum
+        bbase = abase
+    base = bbase
+
+    # smaller brute force for any extra variables
+    for at in (if nmods.len == 0: 0 else: 16^(nmods.len - 1)) ..< 16^(nmods.len):
+      var
+        attempt: seq[int]
+        a = uint at
+        abase = base
+
+      while a > 0:
+        attempt.add int(a and 0xF) - 8
+        a = a shr 4
+
+      for i in 0 ..< attempt.len:
+        abase = zip(abase, nmods[i]).mapIt(it[0] + it[1] * attempt[i])
+
+      let sum = abase.foldl(a + b)
+      if sum < best and abase.allIt(it >= 0):
+        best = sum
+        bbase = abase
+
+    result += best
 
 echo "total presses to configure lights: ", part1()
-echo "total presses to conifgure joltage: ", part2()
+echo "total presses to configure joltage: ", part2()
