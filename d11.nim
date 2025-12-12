@@ -87,5 +87,5 @@ proc part2(): int =
   assert pathsBetween(dac, fft) == 0, "dac was positioned incorrectly (somehow)"
   pathsBetween(svr, fft) * pathsBetween(fft, dac) * pathsBetween(dac, -1)
 
-echo "total paths: ", part1()
+echo "total paths from you: ", part1()
 echo "paths through fft and dac: ", part2()
